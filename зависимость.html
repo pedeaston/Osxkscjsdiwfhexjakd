@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Период и частота</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#0f172a;
+    color:white;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.panel{
+    background:#1e293b;
+    padding:20px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+h1{
+    text-align:center;
+}
+
+.controls{
+    display:flex;
+    gap:20px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.value{
+    font-size:1.4rem;
+    font-weight:bold;
+}
+
+canvas{
+    background:white;
+    border-radius:12px;
+    display:block;
+    margin:auto;
+}
+
+.row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    justify-content:center;
+}
+
+.card{
+    background:#1e293b;
+    border-radius:16px;
+    padding:15px;
+}
+
+#circleCanvas{
+    background:#f8fafc;
+}
+
+#graphCanvas{
+    width:100%;
+    max-width:900px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Зависимость периода от частоты</h1>
+
+<div class="panel">
+
+<div class="controls">
+
+<label>
+Частота:
+<input
+type="range"
+id="freq"
+min="0.2"
+max="10"
+step="0.1"
+value="1">
+</label>
+
+<div class="value">
+f = <span id="freqValue">1.0</span> Гц
+</div>
+
+<div class="value">
+T = <span id="periodValue">1.00</span> с
+</div>
+
+</div>
+</div>
+
+<div class="row">
+
+<div class="card">
+<canvas id="circleCanvas" width="350" height="350"></canvas>
+</div>
+
+<div class="card">
+<canvas id="graphCanvas" width="700" height="350"></canvas>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const freqSlider = document.getElementById("freq");
+const freqValue = document.getElementById("freqValue");
+const periodValue = document.getElementById("periodValue");
+
+const circleCanvas = document.getElementById("circleCanvas");
+const cctx = circleCanvas.getContext("2d");
+
+const graphCanvas = document.getElementById("graphCanvas");
+const gctx = graphCanvas.getContext("2d");
+
+let angle = 0;
+let lastTime = performance.now();
+
+function updateValues(){
+
+    const f = parseFloat(freqSlider.value);
+    const T = 1/f;
+
+    freqValue.textContent = f.toFixed(1);
+    periodValue.textContent = T.toFixed(2);
+
+}
+
+freqSlider.addEventListener("input", updateValues);
+updateValues();
+
+function drawCircle(dt){
+
+    const f = parseFloat(freqSlider.value);
+
+    angle += 2*Math.PI*f*dt;
+
+    cctx.clearRect(0,0,350,350);
+
+    const cx = 175;
+    const cy = 175;
+    const r = 110;
+
+    cctx.strokeStyle = "#2563eb";
+    cctx.lineWidth = 3;
+
+    cctx.beginPath();
+    cctx.arc(cx,cy,r,0,2*Math.PI);
+    cctx.stroke();
+
+    const x = cx + r*Math.cos(angle);
+    const y = cy + r*Math.sin(angle);
+
+    cctx.beginPath();
+    cctx.moveTo(cx,cy);
+    cctx.lineTo(x,y);
+    cctx.strokeStyle = "#ef4444";
+    cctx.stroke();
+
+    cctx.beginPath();
+    cctx.arc(x,y,10,0,2*Math.PI);
+    cctx.fillStyle = "#ef4444";
+    cctx.fill();
+
+    cctx.fillStyle="#111";
+    cctx.font="20px Arial";
+    cctx.fillText(
+        "Скорость вращения ∝ частоте",
+        25,
+        30
+    );
+
+}
+
+function drawGraph(){
+
+    gctx.clearRect(
+        0,
+        0,
+        graphCanvas.width,
+        graphCanvas.height
+    );
+
+    const w = graphCanvas.width;
+    const h = graphCanvas.height;
+
+    const left = 60;
+    const bottom = h-50;
+
+    gctx.strokeStyle="black";
+    gctx.lineWidth=2;
+
+    gctx.beginPath();
+    gctx.moveTo(left,20);
+    gctx.lineTo(left,bottom);
+    gctx.lineTo(w-20,bottom);
+    gctx.stroke();
+
+    gctx.font="16px Arial";
+
+    gctx.fillText("T (с)",20,30);
+    gctx.fillText("f (Гц)",w-70,h-15);
+
+    gctx.strokeStyle="#2563eb";
+    gctx.lineWidth=3;
+
+    gctx.beginPath();
+
+    let first=true;
+
+    for(let f=0.2; f<=10; f+=0.05){
+
+        let T = 1/f;
+
+        let x =
+        left +
+        ((f-0.2)/(10-0.2))
+        *(w-left-30);
+
+        let y =
+        bottom -
+        (T/5)
+        *(bottom-30);
+
+        if(first){
+            gctx.moveTo(x,y);
+            first=false;
+        }else{
+            gctx.lineTo(x,y);
+        }
+    }
+
+    gctx.stroke();
+
+    const currentF =
+        parseFloat(freqSlider.value);
+
+    const currentT =
+        1/currentF;
+
+    const px =
+        left +
+        ((currentF-0.2)/(10-0.2))
+        *(w-left-30);
+
+    const py =
+        bottom -
+        (currentT/5)
+        *(bottom-30);
+
+    gctx.beginPath();
+    gctx.arc(px,py,7,0,2*Math.PI);
+    gctx.fillStyle="red";
+    gctx.fill();
+
+}
+
+function animate(time){
+
+    const dt =
+    (time-lastTime)/1000;
+
+    lastTime=time;
+
+    drawCircle(dt);
+    drawGraph();
+
+    requestAnimationFrame(
+        animate
+    );
+
+}
+
+requestAnimationFrame(
+    animate
+);
+
+</script>
+
+</body>
+</html>
